@@ -21,7 +21,7 @@ interface TaskModalProps {
     confirmLoading?: boolean
     task?: TaskItem
     onCancel: () => void
-    onSubmit: (values: TaskFormValues, task?: TaskItem) => void
+    onSubmit: (values: TaskFormValues, task?: TaskItem) => void | Promise<void>
 }
 
 const formatDateTime = (date: Date) =>
@@ -90,7 +90,7 @@ const TaskModal = ({
                             <Select
                                 options={[
                                     { label: '待处理', value: 'todo' },
-                                    { label: '进行中', value: 'in-progress' },
+                                    { label: '进行中', value: 'doing' },
                                     { label: '已完成', value: 'done' },
                                 ]}
                             />

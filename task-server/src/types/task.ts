@@ -1,5 +1,5 @@
 //定义任务状态
-export type TaskStatus = 'todo' | 'in-progress' | 'done'
+export type TaskStatus = 'todo' | 'doing' | 'done'
 //定义任务优先级
 export type TaskLevel = 'high' | 'medium' | 'low'
 

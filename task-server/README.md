@@ -145,7 +145,7 @@ PATCH /task/task-001/status/next
 状态流转规则：
 
 ```text
-todo -> in-progress -> done -> todo
+todo -> doing -> done -> todo
 ```
 
 ## 参数校验
@@ -159,7 +159,7 @@ todo -> in-progress -> done -> todo
 更新任务时：
 
 - 支持部分更新。
-- `status` 如果传入，必须是 `todo`、`in-progress`、`done` 之一。
+- `status` 如果传入，必须是 `todo`、`doing`、`done` 之一。
 - 传入 DTO 中没有定义的字段会被拒绝。
 
 ## 错误处理

@@ -62,10 +62,10 @@ const ArchiveView = () => {
         return task.updatedAt >= startOfWeek && task.updatedAt < endOfWeek
     })
 
-    const handleRestoreTask = (task: TaskItem) => {
-        updateTask({
+    const handleRestoreTask = async (task: TaskItem) => {
+        await updateTask({
             ...task,
-            status: 'in-progress',
+            status: 'doing',
             updatedAt: new Date(),
         })
     }
@@ -74,7 +74,6 @@ const ArchiveView = () => {
         <>
             <header className="topbar">
                 <div>
-                    <Text className="eyebrow">任务管理</Text>
                     <Title level={2}>归档记录</Title>
                 </div>
 

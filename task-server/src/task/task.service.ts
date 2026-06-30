@@ -1,201 +1,117 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-
-import type { TaskItem, TaskStatus } from '../types/task'
+import type { TaskStatus } from '../types/task';
 
 const nextStatusMap: Record<TaskStatus, TaskStatus> = {
-  todo: 'in-progress',
-  'in-progress': 'done',
+  todo: 'doing',
+  doing: 'done',
   done: 'todo',
-}
-
-export const taskList: TaskItem[] = [
-  {
-    id: 'task-001',
-    title: '完成项目目录整理',
-    description: '梳理 src 目录，把页面、组件、类型和 mock 数据放到对应目录中。',
-    status: 'done',
-    level: 'high',
-    createdAt: new Date('2026-06-22T09:00:00'),
-    updatedAt: new Date('2026-06-22T19:00:00'),
-  },
-  {
-    id: 'task-002',
-    title: '定义任务类型',
-    description: '在 types 目录中维护 TaskItem、TaskStatus 和 TaskLevel 类型。',
-    status: 'done',
-    level: 'high',
-    createdAt: new Date('2026-06-24T09:20:00'),
-    updatedAt: new Date('2026-06-24T10:10:00'),
-  },
-  {
-    id: 'task-003',
-    title: '准备 mock 任务数据',
-    description: '生成一组静态任务数据，用于练习列表渲染和状态筛选。',
-    status: 'done',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T10:15:00'),
-    updatedAt: new Date('2026-06-24T10:45:00'),
-  },
-  {
-    id: 'task-004',
-    title: '改造工作台统计卡片',
-    description: '把统计数字从写死值改成根据任务数组动态计算。',
-    status: 'in-progress',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T11:00:00'),
-    updatedAt: new Date('2026-06-24T11:00:00'),
-  },
-  {
-    id: 'task-005',
-    title: '按任务状态分组',
-    description: '把任务拆分为待处理、进行中、已完成三组，并渲染到不同列。',
-    status: 'in-progress',
-    level: 'high',
-    createdAt: new Date('2026-06-24T11:30:00'),
-    updatedAt: new Date('2026-06-24T11:30:00'),
-  },
-  {
-    id: 'task-006',
-    title: '实现任务卡片 map 渲染',
-    description: '用数组 map 替换页面中写死的任务卡片。',
-    status: 'in-progress',
-    level: 'high',
-    createdAt: new Date('2026-06-24T13:00:00'),
-    updatedAt: new Date('2026-06-24T13:40:00'),
-  },
-  {
-    id: 'task-007',
-    title: '实现关键词搜索',
-    description: '根据任务标题和描述筛选任务，练习输入框受控状态。',
-    status: 'todo',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T14:10:00'),
-    updatedAt: new Date('2026-06-24T14:10:00'),
-  },
-  {
-    id: 'task-008',
-    title: '实现状态筛选',
-    description: '根据 todo、in-progress、done 筛选任务列表。',
-    status: 'todo',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T14:30:00'),
-    updatedAt: new Date('2026-06-24T14:30:00'),
-  },
-  {
-    id: 'task-009',
-    title: '实现优先级筛选',
-    description: '根据 high、medium、low 筛选任务列表。',
-    status: 'todo',
-    level: 'low',
-    createdAt: new Date('2026-06-24T15:00:00'),
-    updatedAt: new Date('2026-06-24T15:00:00'),
-  },
-  {
-    id: 'task-010',
-    title: '抽取任务卡片组件',
-    description: '把单个任务卡片抽成 TaskCard 组件，并通过 props 接收任务数据。',
-    status: 'in-progress',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T15:30:00'),
-    updatedAt: new Date('2026-06-24T15:30:00'),
-  },
-  {
-    id: 'task-011',
-    title: '完成页面切换逻辑',
-    description: '点击侧边栏菜单时切换工作台、任务列表和归档记录页面。',
-    status: 'done',
-    level: 'medium',
-    createdAt: new Date('2026-06-24T16:00:00'),
-    updatedAt: new Date('2026-06-24T16:50:00'),
-  },
-  {
-    id: 'task-012',
-    title: '整理每日学习复盘',
-    description: '记录今天完成的内容、遇到的问题和明天的计划。',
-    status: 'todo',
-    level: 'low',
-    createdAt: new Date('2026-06-24T17:00:00'),
-    updatedAt: new Date('2026-06-24T17:00:00'),
-  },
-]
-
-
+};
 
 @Injectable()
 export class TaskService {
-  create(createTaskDto: CreateTaskDto) {
-    const newTask: TaskItem = {
-      id: crypto.randomUUID(),
-      title: createTaskDto.title,
-      description: createTaskDto.description,
-      status: 'todo',
-      level: createTaskDto.level,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  constructor(private readonly prisma: PrismaService) {}
 
-    taskList.push(newTask)
-    return newTask
+  async create(createTaskDto: CreateTaskDto, userId: string) {
+    return this.prisma.task.create({
+      data: {
+        title: createTaskDto.title,
+        description: createTaskDto.description,
+        level: createTaskDto.level,
+        status: 'todo',
+        userId,
+      },
+    });
   }
 
-  findAll() {
-    return {
-      code:200,
-      data:taskList}
-    
-  }
-
-  findOne(id: string) {
-    const task = taskList.find((task:TaskItem) => task.id === id)
-
-    if (!task) {
-      throw new NotFoundException('任务不存在')
-    }
+  async findAll(userId: string) {
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
     return {
-      code:200,
-      data:task}
+      code: 200,
+      data: tasks,
+    };
   }
 
-  update(id: string, updateTaskDto: UpdateTaskDto) {
-    const index = taskList.findIndex((task:TaskItem) => task.id === id)
-
-    if(index === -1) {
-      throw new NotFoundException('任务不存在')
-    }
-
-    taskList[index] = {
-      ...taskList[index],
-      ...updateTaskDto,
-      updatedAt: new Date(),
-    }
-
-    return taskList[index]
-  }
-
-  remove(id: string) {
-    const index = taskList.findIndex((task:TaskItem) => task.id === id)
-
-    if(index === -1) {
-      throw new NotFoundException('任务不存在')
-    }
-
-    taskList.splice(index,1)
-    return taskList.length
-  }
-
-  changeToNextStatus(id: string) {
-    const task = taskList.find((task:TaskItem) => task.id === id)
+  async findOne(id: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
 
     if (!task) {
-      throw new NotFoundException('任务不存在')
+      throw new NotFoundException('任务不存在');
     }
 
-    task.status = nextStatusMap[task.status]
-    task.updatedAt = new Date()
+    return {
+      code: 200,
+      data: task,
+    };
+  }
 
-    return task
+  async update(id: string, updateTaskDto: UpdateTaskDto, userId: string) {
+    await this.findTaskOrThrow(id, userId);
+
+    return this.prisma.task.update({
+      where: {
+        id,
+      },
+      data: updateTaskDto,
+    });
+  }
+
+  async remove(id: string, userId: string) {
+    await this.findTaskOrThrow(id, userId);
+
+    await this.prisma.task.delete({
+      where: {
+        id,
+      },
+    });
+
+    return this.prisma.task.count({
+      where: {
+        userId,
+      },
+    });
+  }
+
+  async changeToNextStatus(id: string, userId: string) {
+    const task = await this.findTaskOrThrow(id, userId);
+
+    return this.prisma.task.update({
+      where: {
+        id,
+      },
+      data: {
+        status: nextStatusMap[task.status],
+      },
+    });
+  }
+
+  private async findTaskOrThrow(id: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('任务不存在');
+    }
+
+    return task;
   }
 }

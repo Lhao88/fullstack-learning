@@ -2,6 +2,7 @@
 node_modules/
 
 # Build output
+codex-notes/
 dist/
 build/
 .next/
@@ -38,3 +39,5 @@ Thumbs.db
 
 # Package manager
 .pnpm-store/
+
+fullstack-app-learning-roadmap.md

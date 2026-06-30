@@ -1,15 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthUser } from '../auth/types/auth-user';
 import { TaskService } from './task.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Controller('task')
+@UseGuards(JwtAuthGuard)
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @Post()
-  create(@Body() createTaskDto: CreateTaskDto) {
-    const result = this.taskService.create(createTaskDto);
+  async create(
+    @Body() createTaskDto: CreateTaskDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const result = await this.taskService.create(createTaskDto, user.id);
     return {
       code:200,
       data:result
@@ -17,18 +24,22 @@ export class TaskController {
   }
 
   @Get()
-  findAll() {
-    return this.taskService.findAll();
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.taskService.findAll(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.taskService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.taskService.findOne(id, user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    const result = this.taskService.update(id, updateTaskDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateTaskDto: UpdateTaskDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const result = await this.taskService.update(id, updateTaskDto, user.id);
     return{
       code:200,
       message:'更新成功',
@@ -37,8 +48,11 @@ export class TaskController {
   }
 
   @Patch(':id/status/next')
-  changeToNextStatus(@Param('id') id: string) {
-    const result = this.taskService.changeToNextStatus(id);
+  async changeToNextStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const result = await this.taskService.changeToNextStatus(id, user.id);
     return {
       code:200,
       message:'状态更新成功',
@@ -47,8 +61,8 @@ export class TaskController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    const result = this.taskService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const result = await this.taskService.remove(id, user.id);
     return {
       code:200,
       message:'删除成功',

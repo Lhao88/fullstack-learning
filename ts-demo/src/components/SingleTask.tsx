@@ -6,7 +6,7 @@ import {
     Typography,
 } from 'antd'
 const { Paragraph, Text } = Typography
-import type { TaskItem, TaskLevel, TaskStatus } from '../types/task'
+import type { TaskItem, TaskLevel } from '../types/task'
 import {useTaskStore} from '../store/taskStore'
 
 const taskLevelMap: Record<TaskLevel, { label: string; color: string; className: string }> = {
@@ -51,16 +51,10 @@ interface SingleTaskProps {
 
 const SingleTask = ({ task }: SingleTaskProps) => {
     const levelInfo = taskLevelMap[task.level]
-    const updateTask = useTaskStore((state) => state.updateTask)
+    const changeTaskToNextStatus = useTaskStore((state) => state.changeTaskToNextStatus)
 
-    const handleChangeStatus = () => {
-        const nextStatus: TaskStatus = task.status === 'todo' ? 'in-progress' : 'done'
-
-        updateTask({
-            ...task,
-            status: nextStatus,
-            updatedAt: new Date(),
-        })
+    const handleChangeStatus = async () => {
+        await changeTaskToNextStatus(task.id)
     }
     
     return(

@@ -13,7 +13,7 @@ const taskStatusMap: Record<TaskStatus, { title: string; badgeColor: string }> =
         title: '待处理',
         badgeColor: '#1677ff',
     },
-    'in-progress': {
+    doing: {
         title: '进行中',
         badgeColor: '#faad14',
     },

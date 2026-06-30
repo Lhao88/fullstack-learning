@@ -31,7 +31,7 @@ const { Text, Title } = Typography
 
 const statusMap: Record<TaskStatus, { color: string; text: string }> = {
     todo: { color: 'blue', text: '待处理' },
-    'in-progress': { color: 'gold', text: '进行中' },
+    doing: { color: 'gold', text: '进行中' },
     done: { color: 'green', text: '已完成' },
 }
 
@@ -55,6 +55,7 @@ const TaskListView = () => {
     const addTask = useTaskStore((state) => state.addTask)
     const updateTask = useTaskStore((state) => state.updateTask)
     const removeTask = useTaskStore((state) => state.removeTask)
+    const changeTaskToNextStatus = useTaskStore((state) => state.changeTaskToNextStatus)
 
     const [taskModalOpen, setTaskModalOpen] = useState(false)
     const [editTask, setEditTask] = useState<TaskItem>()
@@ -63,14 +64,8 @@ const TaskListView = () => {
     const [status, setStatus] = useState<'all' | TaskStatus>('all')
     const [level, setLevel] = useState<'all' | TaskLevel>('all')
 
-    const handleChangeTaskStatus = (task: TaskItem) => {
-        const nextStatus: TaskStatus = task.status === 'todo' ? 'in-progress' : 'done'
-
-        updateTask({
-            ...task,
-            status: nextStatus,
-            updatedAt: new Date(),
-        })
+    const handleChangeTaskStatus = async (task: TaskItem) => {
+        await changeTaskToNextStatus(task.id)
     }
 
     const columns: TableProps<TaskItem>['columns'] = [
@@ -156,43 +151,37 @@ const TaskListView = () => {
     })
 
     //新增任务
-        const handleAddTask = (values : TaskFormValues) => {
-            const newTask: TaskItem = {
-                id: crypto.randomUUID(),
+        const handleAddTask = async (values : TaskFormValues) => {
+            await addTask({
                 title: values.title,
                 description: values.description,
-                status: 'todo',
                 level: values.level,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            }
-            addTask(newTask)
+            })
         }
         //更新任务
-        const handleUpdateTask = (values : TaskFormValues) => {
-            updateTask({...editTask, ...values, updatedAt: new Date()} as TaskItem)
+        const handleUpdateTask = async (values : TaskFormValues) => {
+            await updateTask({...editTask, ...values, updatedAt: new Date()} as TaskItem)
         }
 
         //保存提交
-        const handleSubmitTask = (values : TaskFormValues) => {
+        const handleSubmitTask = async (values : TaskFormValues) => {
     
             if(!editTask){// status 为空时，新建任务
-                handleAddTask(values)
+                await handleAddTask(values)
             }
             else{//status 不为空时，更新任务
-                handleUpdateTask(values)
+                await handleUpdateTask(values)
             }
     
         }
 
-        const handleDeleteTask = (taskId: string) => {
-            removeTask(taskId)
+        const handleDeleteTask = async (taskId: string) => {
+            await removeTask(taskId)
         }
     return (
         <>
             <header className="topbar">
                 <div>
-                    <Text className="eyebrow">任务管理</Text>
                     <Title level={2}>任务列表</Title>
                 </div>
                 <Button
@@ -228,7 +217,7 @@ const TaskListView = () => {
                                 options={[
                                     { label: '全部', value: 'all' },
                                     { label: '待处理', value: 'todo' },
-                                    { label: '进行中', value: 'in-progress' },
+                                    { label: '进行中', value: 'doing' },
                                     { label: '已完成', value: 'done' },
                                 ]}
                             />
@@ -278,8 +267,8 @@ const TaskListView = () => {
                     setTaskModalOpen(false)
                     setEditTask(undefined)
                 }}
-                onSubmit={(values) => {
-                    handleSubmitTask(values)
+                onSubmit={async (values) => {
+                    await handleSubmitTask(values)
                     setTaskModalOpen(false)
                 }}
             />
