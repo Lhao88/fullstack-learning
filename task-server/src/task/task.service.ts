@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CategoryService } from '../category/category.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import type { TaskStatus } from '../types/task';
@@ -12,9 +13,14 @@ const nextStatusMap: Record<TaskStatus, TaskStatus> = {
 
 @Injectable()
 export class TaskService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoryService: CategoryService,
+  ) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string) {
+    await this.ensureCategoryBelongsToUser(createTaskDto.categoryId, userId);
+
     return this.prisma.task.create({
       data: {
         title: createTaskDto.title,
@@ -22,6 +28,10 @@ export class TaskService {
         level: createTaskDto.level,
         status: 'todo',
         userId,
+        categoryId: createTaskDto.categoryId || null,
+      },
+      include: {
+        category: true,
       },
     });
   }
@@ -33,6 +43,9 @@ export class TaskService {
       },
       orderBy: {
         updatedAt: 'desc',
+      },
+      include: {
+        category: true,
       },
     });
 
@@ -48,6 +61,9 @@ export class TaskService {
         id,
         userId,
       },
+      include: {
+        category: true,
+      },
     });
 
     if (!task) {
@@ -62,12 +78,21 @@ export class TaskService {
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string) {
     await this.findTaskOrThrow(id, userId);
+    await this.ensureCategoryBelongsToUser(updateTaskDto.categoryId, userId);
 
     return this.prisma.task.update({
       where: {
         id,
       },
-      data: updateTaskDto,
+      data: {
+        ...updateTaskDto,
+        ...(Object.prototype.hasOwnProperty.call(updateTaskDto, 'categoryId')
+          ? { categoryId: updateTaskDto.categoryId || null }
+          : {}),
+      },
+      include: {
+        category: true,
+      },
     });
   }
 
@@ -97,6 +122,9 @@ export class TaskService {
       data: {
         status: nextStatusMap[task.status],
       },
+      include: {
+        category: true,
+      },
     });
   }
 
@@ -113,5 +141,20 @@ export class TaskService {
     }
 
     return task;
+  }
+
+  private async ensureCategoryBelongsToUser(
+    categoryId: string | null | undefined,
+    userId: string,
+  ) {
+    if (!categoryId) {
+      return;
+    }
+
+    const exists = await this.categoryService.existsForUser(categoryId, userId);
+
+    if (!exists) {
+      throw new NotFoundException('分类不存在');
+    }
   }
 }

@@ -11,6 +11,7 @@ import {
     Card,
     Col,
     Input,
+    Pagination,
     Popconfirm,
     Row,
     Select,
@@ -25,9 +26,11 @@ import TaskModal from '../components/TaskModal'
 import type { TaskItem, TaskLevel, TaskStatus } from '../types/task'
 import type { TaskFormValues } from '../components/TaskModal'
 import {useTaskStore} from '../store/taskStore'
-import { useState } from 'react'
+import { useCategoryStore } from '../store/categoryStore'
+import { useEffect, useState } from 'react'
 
 const { Text, Title } = Typography
+const PAGE_SIZE = 8
 
 const statusMap: Record<TaskStatus, { color: string; text: string }> = {
     todo: { color: 'blue', text: '待处理' },
@@ -56,6 +59,7 @@ const TaskListView = () => {
     const updateTask = useTaskStore((state) => state.updateTask)
     const removeTask = useTaskStore((state) => state.removeTask)
     const changeTaskToNextStatus = useTaskStore((state) => state.changeTaskToNextStatus)
+    const categories = useCategoryStore((state) => state.categories)
 
     const [taskModalOpen, setTaskModalOpen] = useState(false)
     const [editTask, setEditTask] = useState<TaskItem>()
@@ -63,6 +67,12 @@ const TaskListView = () => {
     const [keyword, setKeyword] = useState('')
     const [status, setStatus] = useState<'all' | TaskStatus>('all')
     const [level, setLevel] = useState<'all' | TaskLevel>('all')
+    const [categoryId, setCategoryId] = useState<'all' | 'uncategorized' | string>('all')
+    const [currentPage, setCurrentPage] = useState(1)
+
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [keyword, status, level, categoryId])
 
     const handleChangeTaskStatus = async (task: TaskItem) => {
         await changeTaskToNextStatus(task.id)
@@ -73,11 +83,13 @@ const TaskListView = () => {
             title: '任务标题',
             dataIndex: 'title',
             key: 'title',
+            width: 220,
         },
         {
             title: '状态',
             dataIndex: 'status',
             key: 'status',
+            width: 100,
             render: (status: TaskStatus) => (
                 <Tag color={statusMap[status].color}>{statusMap[status].text}</Tag>
             ),
@@ -86,25 +98,42 @@ const TaskListView = () => {
             title: '优先级',
             dataIndex: 'level',
             key: 'level',
+            width: 90,
             render: (level: TaskLevel) => (
                 <Tag color={levelMap[level].color}>{levelMap[level].text}</Tag>
+            ),
+        },
+        {
+            title: '分类',
+            dataIndex: 'category',
+            key: 'category',
+            width: 110,
+            render: (_, task) => (
+                task.category ? (
+                    <Tag color={task.category.color}>{task.category.name}</Tag>
+                ) : (
+                    <Tag>未分类</Tag>
+                )
             ),
         },
         {
             title: '创建时间',
             dataIndex: 'createdAt',
             key: 'createdAt',
+            width: 130,
             render: (createdAt: Date) => formatDate(createdAt),
         },
         {
             title: '更新时间',
             dataIndex: 'updatedAt',
             key: 'updatedAt',
+            width: 130,
             render: (updatedAt: Date) => formatDate(updatedAt),
         },
         {
             title: '操作',
             key: 'action',
+            width: 240,
             render: (_, record) => (
                 <Space size={6}>
                     <Button size="small" icon={<EditOutlined />} onClick={() => {
@@ -148,7 +177,15 @@ const TaskListView = () => {
     }).filter((task)=>{
         if(level === 'all') return true
         return task.level === level
+    }).filter((task)=>{
+        if(categoryId === 'all') return true
+        if(categoryId === 'uncategorized') return !task.categoryId
+        return task.categoryId === categoryId
     })
+    const paginatedTaskList = filterTaskList.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE,
+    )
 
     //新增任务
         const handleAddTask = async (values : TaskFormValues) => {
@@ -156,6 +193,7 @@ const TaskListView = () => {
                 title: values.title,
                 description: values.description,
                 level: values.level,
+                categoryId: values.categoryId ?? null,
             })
         }
         //更新任务
@@ -198,7 +236,7 @@ const TaskListView = () => {
             <main className="workspace-content task-list-content">
                 <Card className="toolbar-card">
                     <Row gutter={[12, 12]} align="bottom">
-                        <Col xs={24} lg={10}>
+                        <Col xs={24} lg={8}>
                             <Text className="field-label">搜索</Text>
                             <Input
                                 allowClear
@@ -208,7 +246,7 @@ const TaskListView = () => {
                                 onChange = {(e)=> setKeyword(e.target.value)}
                             />
                         </Col>
-                        <Col xs={24} sm={12} lg={5}>
+                        <Col xs={24} sm={12} lg={4}>
                             <Text className="field-label">状态</Text>
                             <Select
                                 defaultValue="all"
@@ -222,7 +260,7 @@ const TaskListView = () => {
                                 ]}
                             />
                         </Col>
-                        <Col xs={24} sm={12} lg={5}>
+                        <Col xs={24} sm={12} lg={4}>
                             <Text className="field-label">优先级</Text>
                             <Select
                                 defaultValue="all"
@@ -236,12 +274,28 @@ const TaskListView = () => {
                                 ]}
                             />
                         </Col>
+                        <Col xs={24} sm={12} lg={4}>
+                            <Text className="field-label">分类</Text>
+                            <Select
+                                value={categoryId}
+                                onChange={(value) => setCategoryId(value)}
+                                options={[
+                                    { label: '全部', value: 'all' },
+                                    { label: '未分类', value: 'uncategorized' },
+                                    ...categories.map((category) => ({
+                                        label: category.name,
+                                        value: category.id,
+                                    })),
+                                ]}
+                            />
+                        </Col>
                         <Col xs={24} lg={4}>
                             <Button block icon={<ReloadOutlined />}
                             onClick={() => {
                                 setKeyword('')
                                 setStatus('all')
                                 setLevel('all')
+                                setCategoryId('all')
                             }}
                             >
                                 重置
@@ -254,10 +308,20 @@ const TaskListView = () => {
                     <Table
                         rowKey="id"
                         columns={columns}
-                        dataSource={filterTaskList}
+                        dataSource={paginatedTaskList}
                         pagination={false}
-                        scroll={{ x: 760, y: 'calc(100vh - 326px)' }}
+                        scroll={{ x: 1020, y: 'calc(100vh - 376px)' }}
                     />
+                    <div className="table-pagination">
+                        <Pagination
+                            current={currentPage}
+                            pageSize={PAGE_SIZE}
+                            total={filterTaskList.length}
+                            showSizeChanger={false}
+                            showTotal={(total) => `共 ${total} 条`}
+                            onChange={(page) => setCurrentPage(page)}
+                        />
+                    </div>
                 </Card>
             </main>
             <TaskModal

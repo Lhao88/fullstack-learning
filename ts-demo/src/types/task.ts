@@ -1,3 +1,5 @@
+import type { CategoryItem } from './category'
+
 //定义任务状态
 export type TaskStatus = 'todo' | 'doing' | 'done'
 //定义任务优先级
@@ -12,5 +14,7 @@ export interface TaskItem {
     level:TaskLevel,
     createdAt:Date,
     updatedAt:Date,
-    userId?: string
+    userId?: string,
+    categoryId?: string | null,
+    category?: CategoryItem | null
 }

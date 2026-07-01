@@ -1,4 +1,5 @@
 import type { TaskItem, TaskLevel, TaskStatus } from '../types/task'
+import type { CategoryItem } from '../types/category'
 import { request } from './http'
 
 interface ApiResponse<T> {
@@ -22,12 +23,24 @@ interface TaskResponse {
     createdAt: string
     updatedAt: string
     userId: string
+    categoryId?: string | null
+    category?: CategoryResponse | null
+}
+
+interface CategoryResponse {
+    id: string
+    name: string
+    color: string
+    createdAt: string
+    updatedAt: string
+    userId: string
 }
 
 export interface CreateTaskPayload {
     title: string
     description: string
     level: TaskLevel
+    categoryId?: string | null
 }
 
 export interface UpdateTaskPayload {
@@ -35,12 +48,20 @@ export interface UpdateTaskPayload {
     description?: string
     status?: TaskStatus
     level?: TaskLevel
+    categoryId?: string | null
 }
+
+const normalizeCategory = (category: CategoryResponse): CategoryItem => ({
+    ...category,
+    createdAt: new Date(category.createdAt),
+    updatedAt: new Date(category.updatedAt),
+})
 
 const normalizeTask = (task: TaskResponse): TaskItem => ({
     ...task,
     createdAt: new Date(task.createdAt),
     updatedAt: new Date(task.updatedAt),
+    category: task.category ? normalizeCategory(task.category) : null,
 })
 
 export const taskApi = {

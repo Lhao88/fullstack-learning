@@ -48,6 +48,7 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
             description: updatedTask.description,
             status: updatedTask.status,
             level: updatedTask.level,
+            categoryId: updatedTask.categoryId ?? null,
         })
         set((state: TaskStoreState) => ({ tasks: state.tasks.map((task: TaskItem) => task.id === savedTask.id ? savedTask : task) }))
     },

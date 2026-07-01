@@ -5,6 +5,7 @@ import {
     Select,
 } from 'antd'
 import type { TaskItem, TaskLevel, TaskStatus } from '../types/task'
+import { useCategoryStore } from '../store/categoryStore'
 
 const { TextArea } = Input
 
@@ -13,6 +14,7 @@ export interface TaskFormValues {
     description: string
     status?: TaskStatus
     level: TaskLevel
+    categoryId?: string | null
 }
 
 interface TaskModalProps {
@@ -42,6 +44,7 @@ const TaskModal = ({
     onSubmit,
 }: TaskModalProps) => {
     const [form] = Form.useForm<TaskFormValues>()
+    const categories = useCategoryStore((state) => state.categories)
     const isEdit = Boolean(task)
 
     const modalTitle = title ?? (isEdit ? '编辑任务' : '新建任务')
@@ -50,6 +53,7 @@ const TaskModal = ({
         description: task?.description ?? '',
         status: task?.status,
         level: task?.level ?? 'medium',
+        categoryId: task?.categoryId ?? undefined,
     }
 
     return (
@@ -136,6 +140,17 @@ const TaskModal = ({
                             { label: '中', value: 'medium' },
                             { label: '低', value: 'low' },
                         ]}
+                    />
+                </Form.Item>
+
+                <Form.Item label="任务分类" name="categoryId">
+                    <Select
+                        allowClear
+                        placeholder="请选择任务分类"
+                        options={categories.map((category) => ({
+                            label: category.name,
+                            value: category.id,
+                        }))}
                     />
                 </Form.Item>
 

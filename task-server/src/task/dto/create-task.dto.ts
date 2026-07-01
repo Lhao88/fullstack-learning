@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import type { TaskLevel } from '../../types/task';
 
 export class CreateTaskDto {
@@ -14,4 +14,8 @@ export class CreateTaskDto {
     message: '任务优先级必须是 high、medium、low 之一',
   })
   level: TaskLevel;
+
+  @IsOptional()
+  @IsString({ message: '任务分类 ID 必须是字符串' })
+  categoryId?: string | null;
 }

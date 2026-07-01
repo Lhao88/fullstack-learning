@@ -16,7 +16,7 @@ import {useTaskStore } from '../store/taskStore'
 import type { TaskFormValues } from '../components/TaskModal'
 
 const { Content, Header } = Layout
-const { Text, Title } = Typography
+const { Title } = Typography
 
 const DashboardView = () => {
     const [taskModalOpen, setTaskModalOpen] = useState(false)
@@ -32,6 +32,7 @@ const DashboardView = () => {
             title: values.title,
             description: values.description,
             level: values.level,
+            categoryId: values.categoryId ?? null,
         })
     }
 

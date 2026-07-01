@@ -23,6 +23,7 @@ import type { ActiveView } from '../types/activeView'
 
 import { useEffect, useState } from 'react'
 import { useTaskStore } from '../store/taskStore'
+import { useCategoryStore } from '../store/categoryStore'
 import { useAuthStore } from '../store/authStore'
 import { AUTH_UNAUTHORIZED_EVENT } from '../api/http'
 
@@ -40,6 +41,8 @@ const AppLayout = () => {
     const logout = useAuthStore((state) => state.logout)
     const fetchTasks = useTaskStore((state) => state.fetchTasks)
     const clearTasks = useTaskStore((state) => state.clearTasks)
+    const fetchCategories = useCategoryStore((state) => state.fetchCategories)
+    const clearCategories = useCategoryStore((state) => state.clearCategories)
 
     useEffect(() => {
         void initAuth()
@@ -49,6 +52,7 @@ const AppLayout = () => {
         const handleUnauthorized = () => {
             logout()
             clearTasks()
+            clearCategories()
             setActiveView('dashboard')
         }
 
@@ -57,17 +61,19 @@ const AppLayout = () => {
         return () => {
             window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
         }
-    }, [clearTasks, logout])
+    }, [clearCategories, clearTasks, logout])
 
     useEffect(() => {
         if (user) {
             void fetchTasks()
+            void fetchCategories()
         }
-    }, [fetchTasks, user])
+    }, [fetchCategories, fetchTasks, user])
 
     const handleLogout = () => {
         logout()
         clearTasks()
+        clearCategories()
         setActiveView('dashboard')
     }
 

@@ -1,56 +1,166 @@
 # 任务管理后端 API
 
-这是全栈与 App 开发学习路线第二周的后端练习项目，基于 NestJS 实现任务管理 REST API。
+这是全栈学习项目中的后端服务，基于 NestJS、Prisma 和 PostgreSQL 实现。
 
-当前项目暂时使用内存数组保存任务数据，重点练习 NestJS 的模块拆分、Controller、Service、DTO、参数校验、错误处理、CORS 和接口测试流程。第三周会继续接入 PostgreSQL 和 Prisma，把内存数据升级为数据库持久化。
+当前后端已经从早期内存数组版本升级为数据库版本，支持用户注册登录、JWT 鉴权、任务 CRUD、任务分类和用户数据隔离。
 
 ## 技术栈
 
 - Node.js
 - NestJS
 - TypeScript
+- PostgreSQL
+- Prisma
+- bcrypt
+- JWT
+- Passport
 - class-validator
-- class-transformer
 - Jest
 
-## 已完成功能
+## 当前功能
 
-- 创建 NestJS 后端项目。
-- 创建任务模块 `TaskModule`。
-- 使用 Controller 定义任务接口。
-- 使用 Service 处理任务业务逻辑。
-- 使用内存数组模拟任务数据。
-- 定义任务类型：
-  - `TaskStatus`
-  - `TaskLevel`
-  - `TaskItem`
-- 定义 DTO：
-  - `CreateTaskDto`
-  - `UpdateTaskDto`
-- 开启全局参数校验 `ValidationPipe`。
-- 使用 NestJS 内置 `NotFoundException` 处理 404 错误。
-- 开启 CORS，允许前端开发服务访问。
-- 实现任务状态自动流转接口。
-- 编写接口说明文档。
+### 用户认证
 
-## 项目结构
+- 用户注册：`POST /auth/register`
+- 用户登录：`POST /auth/login`
+- 获取当前用户：`GET /auth/me`
+- 注册时使用 bcrypt 保存密码 hash，不保存明文密码。
+- 登录成功后返回 JWT `accessToken`。
+- `GET /auth/me` 和业务接口需要携带 `Authorization: Bearer accessToken`。
+
+### 任务管理
+
+- 获取当前用户任务列表：`GET /task`
+- 获取任务详情：`GET /task/:id`
+- 创建任务：`POST /task`
+- 更新任务：`PATCH /task/:id`
+- 删除任务：`DELETE /task/:id`
+- 状态流转：`PATCH /task/:id/status/next`
+
+任务状态流转规则：
+
+```text
+todo -> doing -> done -> todo
+```
+
+### 分类管理
+
+- 获取当前用户分类列表：`GET /category`
+- 创建分类：`POST /category`
+- 更新分类：`PATCH /category/:id`
+- 删除分类：`DELETE /category/:id`
+
+分类规则：
+
+- 分类属于当前登录用户。
+- 同一个用户下分类名称不能重复。
+- 任务可以绑定分类，也可以保持未分类。
+- 删除分类时不会删除任务，任务会自动变成未分类。
+
+### 用户数据隔离
+
+- 每个任务都绑定当前登录用户。
+- 每个分类都绑定当前登录用户。
+- A 用户不能查询、更新、删除 B 用户的任务。
+- A 用户不能使用 B 用户的分类。
+- 访问不存在或不属于当前用户的数据时，返回 `404`。
+
+### 参数校验和错误处理
+
+- 全局开启 `ValidationPipe`。
+- 未定义字段会被拒绝。
+- 参数格式错误返回 `400`。
+- 未登录或 token 无效返回 `401`。
+- 数据不存在返回 `404`。
+- 分类名称重复返回 `409`。
+
+## 数据模型
+
+当前 Prisma 模型包含：
+
+- `User`
+- `Task`
+- `Category`
+- `TaskStatus`
+- `TaskLevel`
+
+关系：
+
+```text
+User 1 --- n Task
+User 1 --- n Category
+Category 1 --- n Task
+```
+
+说明：
+
+- 一个用户可以拥有多条任务。
+- 一个用户可以拥有多个分类。
+- 一条任务只属于一个用户。
+- 一条任务可以属于一个分类，也可以不属于任何分类。
+
+完整数据库说明见：
+
+```text
+docs/数据库说明.md
+```
+
+## 目录结构
 
 ```text
 src/
-  main.ts
-  app.module.ts
+  auth/
+    decorators/
+    dto/
+    guards/
+    strategies/
+    types/
+    auth.controller.ts
+    auth.module.ts
+    auth.service.ts
+  category/
+    dto/
+    category.controller.ts
+    category.module.ts
+    category.service.ts
+  prisma/
+    prisma.module.ts
+    prisma.service.ts
   task/
     dto/
-      create-task.dto.ts
-      update-task.dto.ts
     task.controller.ts
     task.module.ts
     task.service.ts
   types/
     task.ts
+  main.ts
+  app.module.ts
 docs/
   接口说明.md
+  数据库说明.md
+prisma/
+  migrations/
+  schema.prisma
+  seed-dev.sql
 ```
+
+## 环境变量
+
+后端依赖本地环境变量，配置文件位于：
+
+```text
+.env
+```
+
+至少需要：
+
+```env
+DATABASE_URL=你的 PostgreSQL 连接字符串
+JWT_SECRET=本地开发密钥
+JWT_EXPIRES_IN=7d
+```
+
+不要把真实连接字符串、密钥或 token 写入 README、提交记录或代码注释。
 
 ## 本地运行
 
@@ -58,6 +168,24 @@ docs/
 
 ```cmd
 npm install
+```
+
+生成 Prisma Client：
+
+```cmd
+npx prisma generate
+```
+
+执行数据库迁移：
+
+```cmd
+npx prisma migrate dev
+```
+
+写入开发 seed 数据：
+
+```cmd
+npx prisma db execute --file prisma/seed-dev.sql
 ```
 
 启动开发服务：
@@ -86,9 +214,17 @@ npm run build
 npm test
 ```
 
-## 接口列表
+## 常用接口
 
-当前任务接口统一使用 `/task` 前缀。
+认证接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/auth/register` | 注册 |
+| POST | `/auth/login` | 登录 |
+| GET | `/auth/me` | 获取当前用户 |
+
+任务接口：
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -99,82 +235,20 @@ npm test
 | DELETE | `/task/:id` | 删除任务 |
 | PATCH | `/task/:id/status/next` | 流转到下一个状态 |
 
+分类接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/category` | 获取分类列表 |
+| POST | `/category` | 创建分类 |
+| PATCH | `/category/:id` | 更新分类 |
+| DELETE | `/category/:id` | 删除分类 |
+
 完整请求参数和响应示例见：
 
 ```text
 docs/接口说明.md
 ```
-
-## 请求示例
-
-创建任务：
-
-```http
-POST /task
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "学习 NestJS Controller",
-  "description": "理解 Controller 如何接收请求并调用 Service",
-  "level": "high"
-}
-```
-
-更新任务：
-
-```http
-PATCH /task/task-001
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "更新任务标题",
-  "level": "medium"
-}
-```
-
-状态流转：
-
-```http
-PATCH /task/task-001/status/next
-```
-
-状态流转规则：
-
-```text
-todo -> doing -> done -> todo
-```
-
-## 参数校验
-
-创建任务时：
-
-- `title` 必须是非空字符串。
-- `description` 必须是非空字符串。
-- `level` 必须是 `high`、`medium`、`low` 之一。
-
-更新任务时：
-
-- 支持部分更新。
-- `status` 如果传入，必须是 `todo`、`doing`、`done` 之一。
-- 传入 DTO 中没有定义的字段会被拒绝。
-
-## 错误处理
-
-查询、更新、删除不存在的任务时，会返回 404：
-
-```json
-{
-  "message": "任务不存在",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
-
-参数校验失败时，会返回 400。
 
 ## CORS
 
@@ -192,17 +266,18 @@ src/main.ts
 
 ## 当前限制
 
-- 任务数据暂时保存在内存数组中。
-- 服务重启后，新增、编辑、删除的数据会恢复到初始状态。
-- 当前还没有用户注册、登录和鉴权。
-- 当前还没有数据库、分页、排序和复杂查询。
-- 当前接口路径使用 `/task`，后续如果希望更符合 REST 命名习惯，可以统一调整为 `/tasks`。
+- 任务列表接口暂未实现后端分页、排序和复杂查询参数。
+- 分类接口已经完成，前端当前只用于任务绑定和筛选，暂未做独立分类管理页面。
+- 当前没有 refresh token，token 过期后需要重新登录。
+- 当前没有角色权限、团队协作、文件上传和标签功能。
 
-## 后续计划
+## 已完成学习重点
 
-- 接入 PostgreSQL。
-- 使用 Prisma 管理数据库模型和迁移。
-- 增加用户注册、登录和 JWT 鉴权。
-- 让不同用户只能访问自己的任务。
-- 前端 React 项目改为从后端 API 获取任务数据。
-- 补充接口测试记录和更完整的异常场景测试。
+- NestJS 模块拆分、Controller、Service、DTO。
+- 使用 Prisma 管理 PostgreSQL 数据模型和迁移。
+- 使用 bcrypt 处理密码 hash。
+- 使用 JWT 和 Passport 实现登录认证。
+- 使用 Guard 保护业务接口。
+- 使用当前用户信息实现任务和分类的数据隔离。
+- 使用 NestJS 内置异常完成统一错误处理。
+- 使用接口文档指导 Postman 和前端联调。
