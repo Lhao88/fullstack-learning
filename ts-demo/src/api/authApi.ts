@@ -1,10 +1,18 @@
-import { clearAccessToken, request, setAccessToken } from './http'
-import type { AuthUser } from '../types/auth'
+import {
+    clearAuthTokens,
+    getRefreshToken,
+    request,
+    setAuthTokens,
+} from './http'
+import type { AuthUser, UserRole, UserStatus } from '../types/auth'
 
 interface UserResponse {
     id: string
     email: string
     nickname: string | null
+    role: UserRole
+    status: UserStatus
+    avatarUrl: string | null
     createdAt: string
     updatedAt: string
 }
@@ -17,6 +25,7 @@ interface ApiResponse<T> {
 
 interface LoginResponse {
     accessToken: string
+    refreshToken: string
     user: UserResponse
 }
 
@@ -54,9 +63,31 @@ export const authApi = {
             auth: false,
         })
 
-        setAccessToken(response.data.accessToken)
+        setAuthTokens(response.data.accessToken, response.data.refreshToken)
         return {
             accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+            user: normalizeUser(response.data.user),
+        }
+    },
+
+    async refreshSession() {
+        const refreshToken = getRefreshToken()
+
+        if (!refreshToken) {
+            throw new Error('缺少 refresh token')
+        }
+
+        const response = await request<ApiResponse<LoginResponse>>('/auth/refresh', {
+            method: 'POST',
+            body: { refreshToken },
+            auth: false,
+        })
+
+        setAuthTokens(response.data.accessToken, response.data.refreshToken)
+        return {
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
             user: normalizeUser(response.data.user),
         }
     },
@@ -67,6 +98,15 @@ export const authApi = {
     },
 
     logout() {
-        clearAccessToken()
+        const refreshToken = getRefreshToken()
+        clearAuthTokens()
+
+        if (refreshToken) {
+            void request('/auth/logout', {
+                method: 'POST',
+                body: { refreshToken },
+                auth: false,
+            }).catch(() => undefined)
+        }
     },
 }

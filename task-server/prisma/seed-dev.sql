@@ -1,15 +1,33 @@
-INSERT INTO "User" ("id", "email", "password", "nickname", "createdAt", "updatedAt")
-VALUES (
-  'dev-user-001',
-  'dev@example.com',
-  '$2b$10$hM0MgPC4NDpQyK8YwcY07emdwT7zDQCldyY1TGnzRiitwvR/5PNeC',
-  '测试用户',
-  '2026-06-23 09:00:00',
-  '2026-06-28 20:00:00'
-)
+INSERT INTO "User" ("id", "email", "password", "nickname", "role", "status", "avatarUrl", "createdAt", "updatedAt")
+VALUES
+  (
+    'dev-user-001',
+    'dev@example.com',
+    '$2b$10$hM0MgPC4NDpQyK8YwcY07emdwT7zDQCldyY1TGnzRiitwvR/5PNeC',
+    '测试用户',
+    'user',
+    'enabled',
+    NULL,
+    '2026-06-23 09:00:00',
+    '2026-06-28 20:00:00'
+  ),
+  (
+    'dev-admin-001',
+    'admin@example.com',
+    '$2b$10$hM0MgPC4NDpQyK8YwcY07emdwT7zDQCldyY1TGnzRiitwvR/5PNeC',
+    '超级管理员',
+    'super_admin',
+    'enabled',
+    NULL,
+    '2026-07-01 09:00:00',
+    '2026-07-01 09:00:00'
+  )
 ON CONFLICT ("email") DO UPDATE SET
   "password" = EXCLUDED."password",
   "nickname" = EXCLUDED."nickname",
+  "role" = EXCLUDED."role",
+  "status" = EXCLUDED."status",
+  "avatarUrl" = EXCLUDED."avatarUrl",
   "updatedAt" = EXCLUDED."updatedAt";
 
 INSERT INTO "Category" ("id", "name", "color", "createdAt", "updatedAt", "userId")

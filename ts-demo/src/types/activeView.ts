@@ -1,1 +1,7 @@
-export type ActiveView = 'dashboard' | 'tasks' | 'archive'
+export type ActiveView =
+    | 'dashboard'
+    | 'tasks'
+    | 'archive'
+    | 'categories'
+    | 'admin'
+    | 'adminCategories'

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -28,6 +28,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         email: true,
         nickname: true,
+        role: true,
+        status: true,
+        avatarUrl: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -35,6 +38,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('当前用户不存在');
+    }
+
+    if (user.status === 'disabled') {
+      throw new ForbiddenException('用户已被禁用');
     }
 
     return user;

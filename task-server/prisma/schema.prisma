@@ -16,11 +16,28 @@ model User {
   email     String   @unique
   password  String
   nickname  String?
+  role      UserRole   @default(user)
+  status    UserStatus @default(enabled)
+  avatarUrl String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks      Task[]
-  categories Category[]
+  tasks         Task[]
+  categories    Category[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Category {
@@ -62,5 +79,15 @@ enum TaskLevel {
   high
   medium
   low
+}
+
+enum UserRole {
+  user
+  super_admin
+}
+
+enum UserStatus {
+  enabled
+  disabled
 }
   

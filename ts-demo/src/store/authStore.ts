@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { authApi } from '../api/authApi'
-import { getAccessToken } from '../api/http'
+import { uploadApi } from '../api/uploadApi'
+import { getAccessToken, getRefreshToken } from '../api/http'
 import type { LoginPayload, RegisterPayload } from '../api/authApi'
 import type { AuthUser } from '../types/auth'
 
@@ -12,6 +13,7 @@ interface AuthStoreState {
     initAuth: () => Promise<void>
     login: (payload: LoginPayload) => Promise<void>
     register: (payload: RegisterPayload) => Promise<void>
+    uploadAvatar: (file: File) => Promise<void>
     logout: () => void
 }
 
@@ -28,6 +30,27 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
         const token = getAccessToken()
 
         if (!token) {
+            const refreshToken = getRefreshToken()
+
+            if (refreshToken) {
+                set({ loading: true, error: undefined })
+
+                try {
+                    const result = await authApi.refreshSession()
+                    set({ user: result.user, initialized: true, loading: false })
+                } catch (error) {
+                    authApi.logout()
+                    set({
+                        user: undefined,
+                        initialized: true,
+                        loading: false,
+                        error: getErrorMessage(error),
+                    })
+                }
+
+                return
+            }
+
             set({ initialized: true, user: undefined })
             return
         }
@@ -72,6 +95,18 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
             set({ user: result.user, loading: false })
         } catch (error) {
             set({ loading: false, error: getErrorMessage(error) })
+            throw error
+        }
+    },
+
+    uploadAvatar: async (file: File) => {
+        set({ error: undefined })
+
+        try {
+            const user = await uploadApi.uploadAvatar(file)
+            set({ user })
+        } catch (error) {
+            set({ error: getErrorMessage(error) })
             throw error
         }
     },

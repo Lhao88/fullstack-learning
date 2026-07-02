@@ -8,7 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 const jwtExpiresIn = (
-  process.env.JWT_EXPIRES_IN ?? '7d'
+  process.env.JWT_EXPIRES_IN ?? '15m'
 ) as NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
 
 @Module({
